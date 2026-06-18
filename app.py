@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, constr
+import sqlite3
 from database import get_connection
 
 app = FastAPI(
@@ -10,7 +11,7 @@ app = FastAPI(
 
 
 class ProductCreate(BaseModel):
-    name: str
+    name: constr(strip_whitespace=True, min_length=1, max_length=100)
 
 
 @app.get("/products")
@@ -19,17 +20,13 @@ def get_products():
 
     with get_connection() as conn:
         cursor = conn.cursor()
-
-        cursor.execute(
-            "SELECT id, name FROM products"
-        )
-
+        cursor.execute("SELECT id, name FROM products")
         products = cursor.fetchall()
 
     if not products:
         raise HTTPException(
             status_code=404,
-            detail=f"No products found matching '{name}'."
+            detail="No products found."
         )
 
     return [
@@ -44,20 +41,31 @@ def get_products():
 @app.post("/products", status_code=201)
 def create_product(item: ProductCreate):
     normalized = item.name.strip()
-    if not normalized:
-        raise HTTPException(
-            status_code=400,
-            detail="Product name cannot be empty."
-        )
 
     with get_connection() as conn:
         cursor = conn.cursor()
         cursor.execute(
-            "INSERT INTO products (name) VALUES (?)",
+            "SELECT id FROM products WHERE LOWER(name) = LOWER(?)",
             (normalized,)
         )
-        conn.commit()
-        product_id = cursor.lastrowid
+        if cursor.fetchone():
+            raise HTTPException(
+                status_code=409,
+                detail="Product already exists."
+            )
+
+        try:
+            cursor.execute(
+                "INSERT INTO products (name) VALUES (?)",
+                (normalized,)
+            )
+            conn.commit()
+            product_id = cursor.lastrowid
+        except sqlite3.Error as exc:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Database error: {exc}"
+            )
 
     return {"id": product_id, "name": normalized}
 

@@ -27,15 +27,22 @@ if st.button("Add Product"):
     if not new_product.strip():
         st.warning("Please enter a product name.")
     else:
-        response = requests.post(
-            f"{API_BASE_URL}/products",
-            json={"name": new_product}
-        )
-
-        if response.status_code == 201:
-            st.success("Product added successfully.")
+        try:
+            response = requests.post(
+                f"{API_BASE_URL}/products",
+                json={"name": new_product}
+            )
+        except requests.RequestException as exc:
+            st.error(f"Could not reach API: {exc}")
         else:
-            st.error("Failed to add product.")
+            if response.status_code == 201:
+                st.success("Product added successfully.")
+            else:
+                try:
+                    error_data = response.json()
+                    st.error(f"Failed to add product: {error_data.get('detail', response.text)}")
+                except ValueError:
+                    st.error("Failed to add product.")
 
 st.divider()
 
@@ -55,36 +62,29 @@ if st.button("Search"):
     if not search_term.strip():
         st.warning("Please enter a search term.")
     else:
-
-        response = requests.get(
-            f"{API_BASE_URL}/search",
-            params={"name": search_term}
-        )
-
-        if response.status_code == 200:
-
-            products = response.json()
-
-            if products:
-
-                st.success(
-                    f"{len(products)} product(s) found."
-                )
-
-                for product in products:
-                    st.write(
-                        f"• {product['name']}"
-                    )
-
-            else:
-                st.info(
-                    "No products found."
-                )
-
-        else:
-            st.error(
-                "Something went wrong."
+        try:
+            response = requests.get(
+                f"{API_BASE_URL}/search",
+                params={"name": search_term}
             )
+        except requests.RequestException as exc:
+            st.error(f"Could not reach API: {exc}")
+        else:
+            if response.status_code == 200:
+                products = response.json()
+
+                if products:
+                    st.success(f"{len(products)} product(s) found.")
+                    for product in products:
+                        st.write(f"• {product['name']}")
+                else:
+                    st.info("No products found.")
+            else:
+                try:
+                    error_data = response.json()
+                    st.error(f"Search failed: {error_data.get('detail', response.text)}")
+                except ValueError:
+                    st.error("Something went wrong while searching.")
 
 st.divider()
 
@@ -94,17 +94,24 @@ st.divider()
 
 if st.button("View All Products"):
 
-    response = requests.get(
-        f"{API_BASE_URL}/products"
-    )
-
-    if response.status_code == 200:
-
-        products = response.json()
-
-        st.subheader("Available Products")
-
-        for product in products:
-            st.write(
-                f"• {product['name']}"
-            )
+    try:
+        response = requests.get(
+            f"{API_BASE_URL}/products"
+        )
+    except requests.RequestException as exc:
+        st.error(f"Could not reach API: {exc}")
+    else:
+        if response.status_code == 200:
+            products = response.json()
+            if products:
+                st.subheader("Available Products")
+                for product in products:
+                    st.write(f"• {product['name']}")
+            else:
+                st.info("No products are available yet.")
+        else:
+            try:
+                error_data = response.json()
+                st.error(f"Failed to load products: {error_data.get('detail', response.text)}")
+            except ValueError:
+                st.error("Failed to load products.")
