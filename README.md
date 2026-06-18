@@ -35,20 +35,7 @@ Running
 
   `uvicorn app:app --reload`
 
-  or
-
-  `uvicorn api:app --reload`
-
 - Run the Streamlit UI:
 
   `streamlit run streamlit.py`
 
-Notes
-- Confirm which module exposes the ASGI app object (commonly `app:app` or `api:app`) and update the `uvicorn` command accordingly.
-- If the project uses a specific database (SQLite, Postgres, etc.), update `database.py` or environment variables before running `init_db.py`.
-
-License
-- Add your project license here (e.g., MIT).
-
-Contact
-- For questions, open an issue or contact the maintainer.
