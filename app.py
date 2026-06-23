@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, constr
 import sqlite3
+import re
 from database import get_connection
 
 app = FastAPI(
@@ -41,6 +42,13 @@ def get_products():
 @app.post("/products", status_code=201)
 def create_product(item: ProductCreate):
     normalized = item.name.strip()
+
+    # Disallow special characters: allow letters, numbers, spaces, hyphens and underscores
+    if not re.match(r'^[A-Za-z0-9 _-]+$', normalized):
+        raise HTTPException(
+            status_code=400,
+            detail="Product name contains invalid characters. Allowed: letters, numbers, spaces, hyphens, underscores."
+        )
 
     with get_connection() as conn:
         cursor = conn.cursor()
@@ -87,7 +95,7 @@ def search_products(name: str):
             """
             SELECT id, name
             FROM products
-            WHERE LOWER(name) LIKE LOWER(?)
+            WHERE LOWER(name) = LOWER(?)
             """,
             (f"%{name}%",)
         )
