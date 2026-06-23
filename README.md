@@ -3,7 +3,6 @@
 A small Python project providing a product search API and a Streamlit frontend.
 
 Files
-- `api.py` — HTTP API endpoints (FastAPI/Flask/other)
 - `app.py` — application entry or app instance
 - `database.py` — database utilities and connection
 - `init_db.py` — database initialization script
